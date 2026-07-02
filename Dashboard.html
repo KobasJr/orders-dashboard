@@ -174,20 +174,28 @@ const SC={'Delivered':'#1D9E75','Cancelled':'#E24B4A','Enroute':'#FF6D00','Resch
 const PENDING_STATUSES=['Cancelled','PhoneOff','Unresponsive','Rescheduled','Schedule For Tomorrow'];
 let charts={};
 
-google.script.run.withSuccessHandler(function(data){
-  ALL=data.map(r=>({...r,date:new Date(r.date)}));
-  populateFilters();
-  const now=new Date();
-  const monthAgo=new Date(now);monthAgo.setDate(now.getDate()-29);
-  document.getElementById('dateFrom').value=monthAgo.toISOString().slice(0,10);
-  document.getElementById('dateTo').value=now.toISOString().slice(0,10);
-  document.getElementById('loading').style.display='none';
-  document.getElementById('app').style.display='block';
-  period='month';
-  document.querySelectorAll('.toolbar .btn').forEach(b=>b.classList.remove('active'));
-  document.querySelector('.toolbar .btn:nth-child(3)').classList.add('active');
-  render();
-}).getDashboardData();
+const SCRIPT_URL = 'https://script.googleusercontent.com/macros/echo?user_content_key=AUkAhnRCqDCYUYD-trboXhcqffyn4yBI6Qm4jI3nooIf2j8NmjZr6tWbxBVCpG2cMgdNdgKlUVeb0SL6XhtrNql6PnUwwPYkaGNJ93rOgFJsgTdJ4KwJL9SgKwpIm3dpebBMaD_0JuijWjYKvpiuPn9aHOR7F6BDtKIy-0qvvZ8iELW2ysHdpC0Zhv4Qo1DXZUIkfc4L2CTHL2c07zJdc73VabSeJaAQvz7RrCJcbHLYyqBKDO-gPm5mRBcuTi513z-QsEAntSSn_eZskKxF9Qyt-Ivlj2ZOlw&lib=MkWXirXebFb7Eemiqai3sRUd0dQyBLIlF';
+
+fetch(SCRIPT_URL)
+  .then(r=>r.json())
+  .then(function(data){
+    ALL=data.map(r=>({...r,date:new Date(r.date)}));
+    populateFilters();
+    const now=new Date();
+    const monthAgo=new Date(now);monthAgo.setDate(now.getDate()-29);
+    document.getElementById('dateFrom').value=monthAgo.toISOString().slice(0,10);
+    document.getElementById('dateTo').value=now.toISOString().slice(0,10);
+    document.getElementById('loading').style.display='none';
+    document.getElementById('app').style.display='block';
+    period='month';
+    document.querySelectorAll('.toolbar .btn').forEach(b=>b.classList.remove('active'));
+    document.querySelector('.toolbar .btn:nth-child(3)').classList.add('active');
+    render();
+  })
+  .catch(function(err){
+    document.getElementById('loading').innerHTML='Error loading data. Please try again.';
+    console.error(err);
+  });
 
 function setPeriod(p,btn){period=p;fromDate=null;toDate=null;document.querySelectorAll('.toolbar .btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
 function applyCustom(){const f=document.getElementById('dateFrom').value,t=document.getElementById('dateTo').value;if(!f||!t)return;fromDate=new Date(f);toDate=new Date(t);toDate.setHours(23,59,59);period='custom';document.querySelectorAll('.toolbar .btn').forEach(b=>b.classList.remove('active'));render();}
