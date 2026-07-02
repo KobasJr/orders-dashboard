@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Arial,sans-serif;font-size:13px;color:#1a1a1a;background:#fff;padding:16px}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-bottom:12px;border-bottom:1px solid #e5e5e5;margin-bottom:14px}
+label{font-size:11px;color:#666;margin-right:3px}
+select,input[type=date]{font-size:12px;padding:4px 7px;border:1px solid #ddd;border-radius:5px;background:#fff}
+.btn{font-size:12px;padding:4px 11px;border:1px solid #ccc;border-radius:5px;background:#fff;cursor:pointer}
+.btn.active,.btn:hover{background:#f0f0f0}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-bottom:14px}
+.metric{background:#f5f5f5;border-radius:7px;padding:9px 11px}
+.metric .lbl{font-size:10px;color:#888;margin-bottom:3px}
+.metric .val{font-size:18px;font-weight:600}
+.metric .sub{font-size:10px;color:#888;margin-top:2px}
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.chart-card{border:1px solid #e5e5e5;border-radius:8px;padding:12px}
+.chart-card.full{grid-column:1/-1}
+.chart-title{font-size:11px;font-weight:600;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em}
+.legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.legend span{display:flex;align-items:center;gap:4px;font-size:10px;color:#666}
+.ld{width:8px;height:8px;border-radius:2px}
+.section-title{font-size:11px;font-weight:600;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.card{border:1px solid #e5e5e5;border-radius:8px;padding:12px;margin-bottom:12px;overflow-x:auto}
+.op-table{width:100%;border-collapse:collapse;font-size:12px}
+.op-table th{text-align:left;padding:5px 8px;background:#f5f5f5;color:#888;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid #e5e5e5;white-space:nowrap}
+.op-table td{padding:5px 8px;border-bottom:1px solid #e5e5e5;white-space:nowrap}
+.op-table tr:last-child td{border-bottom:none}
+.op-table tr.total-row td{font-weight:600;background:#f5f5f5}
+.op-table tbody tr:hover td{background:#fafafa}
+.pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600}
+.pending-op-block{margin-bottom:10px;border:1px solid #e5e5e5;border-radius:8px;overflow:hidden}
+.pending-op-header{display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:#f5f5f5;cursor:pointer;user-select:none}
+.pending-op-header:hover{background:#ebebeb}
+.pending-op-name{font-weight:600;font-size:12px}
+.pending-op-count{font-size:11px;color:#888}
+.pending-op-body{display:none;padding:8px 12px}
+.pending-op-body.open{display:block}
+.pending-group-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin:8px 0 4px}
+.pending-order-row{display:flex;gap:12px;align-items:center;padding:3px 0;border-bottom:1px solid #f0f0f0;font-size:12px}
+.pending-order-row:last-child{border-bottom:none}
+.order-id{font-weight:600;min-width:90px;color:#1a1a1a}
+.order-city{color:#888;min-width:80px}
+.order-customer{color:#555;flex:1}
+.order-attempts{font-size:10px;padding:1px 6px;border-radius:8px;background:#fce8e8;color:#a32d2d;white-space:nowrap}
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.search-bar{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.search-bar input{flex:1;font-size:13px;padding:6px 10px;border:1px solid #ddd;border-radius:5px;outline:none}
+.search-bar input:focus{border-color:#aaa}
+.search-result-card{border:1px solid #e5e5e5;border-radius:8px;padding:12px;font-size:12px;background:#fafafa}
+.search-result-card .sr-row{display:flex;gap:8px;margin-bottom:5px;align-items:center}
+.search-result-card .sr-label{color:#888;min-width:90px;font-size:11px}
+.search-result-card .sr-val{font-weight:600}
+.search-empty{color:#aaa;font-size:12px;padding:8px 0}
+.orders-table{width:100%;border-collapse:collapse;font-size:12px}
+.orders-table th{text-align:left;padding:5px 8px;background:#f5f5f5;color:#888;font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.03em;border-bottom:1px solid #e5e5e5;white-space:nowrap}
+.orders-table td{padding:5px 8px;border-bottom:1px solid #e5e5e5;white-space:nowrap}
+.orders-table tr:last-child td{border-bottom:none}
+.orders-table tbody tr:hover td{background:#fafafa}
+.status-badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:10px;font-weight:600}
+#loading{text-align:center;padding:40px;color:#888}
+</style>
+</head>
+<body>
+
+<div id="loading">Loading orders...</div>
+<div id="app" style="display:none">
+
+<div class="toolbar">
+  <div>
+    <button class="btn active" onclick="setPeriod('today',this)">Today</button>
+    <button class="btn" onclick="setPeriod('week',this)" style="margin-left:4px">This week</button>
+    <button class="btn" onclick="setPeriod('month',this)" style="margin-left:4px">This month</button>
+  </div>
+  <div style="display:flex;align-items:center;gap:5px;margin-left:8px">
+    <label>Custom</label>
+    <input type="date" id="dateFrom">
+    <span style="color:#aaa">to</span>
+    <input type="date" id="dateTo">
+    <button class="btn" onclick="applyCustom()">Apply</button>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:10px;flex-wrap:wrap">
+    <div><label>Operator</label><select id="filterOp" onchange="render()"><option value="">All</option></select></div>
+    <div><label>Product</label><select id="filterProd" onchange="render()"><option value="">All</option></select></div>
+    <div><label>City</label><select id="filterCity" onchange="render()"><option value="">All</option></select></div>
+  </div>
+</div>
+
+<div class="metrics" id="metrics"></div>
+
+<div class="charts">
+  <div class="chart-card full">
+    <div class="chart-title">Buyout rate by operator</div>
+    <div style="position:relative;width:100%;height:200px"><canvas id="chartOp"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Status breakdown</div>
+    <div id="legStatus" class="legend"></div>
+    <div style="position:relative;width:100%;height:200px"><canvas id="chartStatus"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Top cities by volume</div>
+    <div style="position:relative;width:100%;height:200px"><canvas id="chartCity"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-title">Top products by volume</div>
+    <div style="position:relative;width:100%;height:200px"><canvas id="chartProd"></canvas></div>
+  </div>
+  <div class="chart-card full">
+    <div class="chart-title">Daily order volume</div>
+    <div style="position:relative;width:100%;height:160px"><canvas id="chartLine"></canvas></div>
+  </div>
+</div>
+
+<!-- Search by Order ID -->
+<div class="card">
+  <div class="section-title">Search order</div>
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="Type an Order ID..." oninput="searchOrder()">
+    <button class="btn" onclick="clearSearch()">Clear</button>
+  </div>
+  <div id="searchResult"></div>
+</div>
+
+<!-- Latest orders -->
+<div class="card">
+  <div class="section-title">Latest orders</div>
+  <div style="display:flex;gap:6px;margin-bottom:10px" id="latestFilters">
+    <button class="btn active" onclick="setLatestFilter('all',this)">All</button>
+    <button class="btn" onclick="setLatestFilter('Cancelled',this)">Cancelled</button>
+    <button class="btn" onclick="setLatestFilter('Delivered',this)">Delivered</button>
+    <button class="btn" onclick="setLatestFilter('PhoneOff',this)">Phone off</button>
+    <button class="btn" onclick="setLatestFilter('Unresponsive',this)">Unresponsive</button>
+    <button class="btn" onclick="setLatestFilter('Rescheduled',this)">Rescheduled</button>
+    <button class="btn" onclick="setLatestFilter('Enroute',this)">Enroute</button>
+  </div>
+  <div id="latestOrders"></div>
+</div>
+
+<!-- Operator breakdown -->
+<div class="card">
+  <div class="section-title">Operator breakdown</div>
+  <table class="op-table">
+    <thead><tr>
+      <th>Operator</th>
+      <th>Total</th>
+      <th>Delivered</th>
+      <th>Enroute</th>
+      <th>Cancelled</th>
+      <th>Rescheduled</th>
+      <th>Unresponsive</th>
+      <th>Phone off</th>
+      <th>Buyout rate</th>
+    </tr></thead>
+    <tbody id="opBody"></tbody>
+  </table>
+</div>
+
+<!-- Pending orders -->
+<div class="card">
+  <div class="section-title">Pending orders by operator</div>
+  <div id="pendingSection"></div>
+</div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+let ALL=[];let period='today';let fromDate=null,toDate=null;
+let latestFilter='all';
+const SC={'Delivered':'#1D9E75','Cancelled':'#E24B4A','Enroute':'#FF6D00','Rescheduled':'#378ADD','PhoneOff':'#EF9F27','Unresponsive':'#D4537E','Schedule For Tomorrow':'#888780','Out Of Stock':'#7F77DD'};
+const PENDING_STATUSES=['Cancelled','PhoneOff','Unresponsive','Rescheduled','Schedule For Tomorrow'];
+let charts={};
+
+google.script.run.withSuccessHandler(function(data){
+  ALL=data.map(r=>({...r,date:new Date(r.date)}));
+  populateFilters();
+  const now=new Date();
+  const monthAgo=new Date(now);monthAgo.setDate(now.getDate()-29);
+  document.getElementById('dateFrom').value=monthAgo.toISOString().slice(0,10);
+  document.getElementById('dateTo').value=now.toISOString().slice(0,10);
+  document.getElementById('loading').style.display='none';
+  document.getElementById('app').style.display='block';
+  period='month';
+  document.querySelectorAll('.toolbar .btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.toolbar .btn:nth-child(3)').classList.add('active');
+  render();
+}).getDashboardData();
+
+function setPeriod(p,btn){period=p;fromDate=null;toDate=null;document.querySelectorAll('.toolbar .btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');render();}
+function applyCustom(){const f=document.getElementById('dateFrom').value,t=document.getElementById('dateTo').value;if(!f||!t)return;fromDate=new Date(f);toDate=new Date(t);toDate.setHours(23,59,59);period='custom';document.querySelectorAll('.toolbar .btn').forEach(b=>b.classList.remove('active'));render();}
+
+function getRange(){
+  const now=new Date();
+  if(fromDate&&toDate)return{from:fromDate,to:toDate};
+  if(period==='today'){const s=new Date(now);s.setHours(0,0,0,0);return{from:s,to:now};}
+  if(period==='week'){const s=new Date(now);s.setDate(now.getDate()-6);s.setHours(0,0,0,0);return{from:s,to:now};}
+  const s=new Date(now);s.setDate(now.getDate()-29);s.setHours(0,0,0,0);return{from:s,to:now};
+}
+
+function filterRows(data){
+  const {from,to}=getRange();
+  const op=document.getElementById('filterOp').value,prod=document.getElementById('filterProd').value,city=document.getElementById('filterCity').value;
+  return data.filter(r=>r.date>=from&&r.date<=to&&(!op||r.op===op)&&(!prod||r.product===prod)&&(!city||r.city===city));
+}
+
+function populateFilters(){
+  function fill(id,key){const sel=document.getElementById(id);const vals=[...new Set(ALL.map(r=>r[key]).filter(Boolean))].sort();vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o);});}
+  fill('filterOp','op');fill('filterProd','product');fill('filterCity','city');
+}
+
+function mkChart(id,cfg){if(charts[id])charts[id].destroy();charts[id]=new Chart(document.getElementById(id),cfg);}
+
+function computeStats(rows){
+  const total=rows.length;
+  const delivered=rows.filter(r=>r.status==='Delivered').length;
+  const cancelled=rows.filter(r=>r.status==='Cancelled').length;
+  const enroute=rows.filter(r=>r.status==='Enroute').length;
+  const rescheduled=rows.filter(r=>r.status==='Rescheduled').length;
+  const unresponsive=rows.filter(r=>r.status==='Unresponsive').length;
+  const phoneOff=rows.filter(r=>r.status==='PhoneOff').length;
+  const deliveryRate=total?Math.round(delivered/total*100):0;
+  const buyout=(delivered+cancelled)?Math.round(delivered/(delivered+cancelled)*100):0;
+  return{total,delivered,cancelled,enroute,rescheduled,unresponsive,phoneOff,deliveryRate,buyout};
+}
+
+function ratePill(v){
+  const bg=v>=70?'#e1f5ee':v>=50?'#fff3e0':'#fce8e8';
+  const col=v>=70?'#0f6e56':v>=50?'#e65100':'#a32d2d';
+  return `<span class="pill" style="background:${bg};color:${col}">${v}%</span>`;
+}
+
+function statusBadge(status){
+  const color=SC[status]||'#888';
+  const bg=color+'22';
+  return `<span class="status-badge" style="background:${bg};color:${color}">${status}</span>`;
+}
+
+/* ── Search ── */
+function searchOrder(){
+  const q=document.getElementById('searchInput').value.trim().toLowerCase();
+  const el=document.getElementById('searchResult');
+  if(!q){el.innerHTML='';return;}
+  const matches=ALL.filter(r=>r.orderId.toLowerCase().includes(q));
+  if(matches.length===0){el.innerHTML='<p class="search-empty">No order found matching "'+q+'".</p>';return;}
+  el.innerHTML=matches.slice(0,10).map(r=>`
+    <div class="search-result-card" style="margin-bottom:8px">
+      <div class="sr-row"><span class="sr-label">Order ID</span><span class="sr-val">${r.orderId}</span></div>
+      <div class="sr-row"><span class="sr-label">Customer</span><span class="sr-val">${r.customerName||'—'}</span></div>
+      <div class="sr-row"><span class="sr-label">Operator</span><span class="sr-val">${r.op}</span></div>
+      <div class="sr-row"><span class="sr-label">City</span><span class="sr-val">${r.city}</span></div>
+      <div class="sr-row"><span class="sr-label">Product</span><span class="sr-val">${r.product}</span></div>
+      <div class="sr-row"><span class="sr-label">Status</span>${statusBadge(r.status)}</div>
+      <div class="sr-row"><span class="sr-label">Date</span><span class="sr-val">${r.date.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'})}</span></div>
+      ${r.attempts>=1?`<div class="sr-row"><span class="sr-label">Attempts</span><span class="sr-val" style="color:#a32d2d">${r.attempts}</span></div>`:''}
+    </div>`).join('');
+}
+
+function clearSearch(){
+  document.getElementById('searchInput').value='';
+  document.getElementById('searchResult').innerHTML='';
+}
+
+/* ── Latest orders ── */
+function setLatestFilter(f,btn){
+  latestFilter=f;
+  document.querySelectorAll('#latestFilters .btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLatestOrders(filterRows(ALL));
+}
+
+function renderLatestOrders(rows){
+  let filtered=latestFilter==='all'?rows:rows.filter(r=>r.status===latestFilter);
+  const sorted=[...filtered].sort((a,b)=>b.date-a.date).slice(0,10);
+  if(sorted.length===0){
+    document.getElementById('latestOrders').innerHTML='<p class="search-empty">No orders found.</p>';
+    return;
+  }
+  let html=`<table class="orders-table"><thead><tr>
+    <th>Order ID</th><th>Date</th><th>Customer</th><th>Operator</th><th>City</th><th>Product</th><th>Status</th><th>Status updated at</th>
+  </tr></thead><tbody>`;
+  sorted.forEach(r=>{
+    const updatedAt=r.statusUpdatedAt?new Date(r.statusUpdatedAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
+    html+=`<tr>
+      <td style="font-weight:600">${r.orderId}</td>
+      <td>${r.date.toLocaleDateString('en-GB',{day:'numeric',month:'short'})}</td>
+      <td>${r.customerName||'—'}</td>
+      <td>${r.op}</td>
+      <td>${r.city}</td>
+      <td>${r.product}</td>
+      <td>${statusBadge(r.status)}</td>
+      <td>${updatedAt}</td>
+    </tr>`;
+  });
+  html+='</tbody></table>';
+  if(filtered.length>15)html+=`<p style="font-size:11px;color:#aaa;margin-top:6px">Showing 50 of ${filtered.length} orders.</p>`;
+  document.getElementById('latestOrders').innerHTML=html;
+}
+
+/* ── Operator table ── */
+function renderOpTable(rows){
+  const ops=[...new Set(rows.map(r=>r.op))].sort();
+  const all=computeStats(rows);
+  const fmt=(n,c)=>`<span style="color:${c};font-weight:600">${n}</span>`;
+  let html=`<tr class="total-row">
+    <td><strong>All operators</strong></td>
+    <td>${all.total}</td>
+    <td>${fmt(all.delivered,'#1D9E75')}</td>
+    <td>${fmt(all.enroute,'#FF6D00')}</td>
+    <td>${fmt(all.cancelled,'#E24B4A')}</td>
+    <td>${fmt(all.rescheduled,'#378ADD')}</td>
+    <td>${fmt(all.unresponsive,'#D4537E')}</td>
+    <td>${fmt(all.phoneOff,'#EF9F27')}</td>
+    <td>${ratePill(all.deliveryRate)}</td>
+  </tr>`;
+  ops.sort((a,b)=>{
+    const sa=computeStats(rows.filter(r=>r.op===a));
+    const sb=computeStats(rows.filter(r=>r.op===b));
+    return sb.deliveryRate-sa.deliveryRate;
+  }).forEach(op=>{
+    const s=computeStats(rows.filter(r=>r.op===op));
+    html+=`<tr>
+      <td>${op}</td><td>${s.total}</td>
+      <td>${fmt(s.delivered,'#1D9E75')}</td>
+      <td>${fmt(s.enroute,'#FF6D00')}</td>
+      <td>${fmt(s.cancelled,'#E24B4A')}</td>
+      <td>${fmt(s.rescheduled,'#378ADD')}</td>
+      <td>${fmt(s.unresponsive,'#D4537E')}</td>
+      <td>${fmt(s.phoneOff,'#EF9F27')}</td>
+      <td>${ratePill(s.deliveryRate)}</td>
+    </tr>`;
+  });
+  document.getElementById('opBody').innerHTML=html;
+}
+
+/* ── Pending ── */
+function renderPending(rows){
+  const pending=rows.filter(r=>PENDING_STATUSES.includes(r.status));
+  const ops=[...new Set(pending.map(r=>r.op))].sort();
+  if(ops.length===0){document.getElementById('pendingSection').innerHTML='<p class="search-empty">No pending orders in this period.</p>';return;}
+  let html='';
+  ops.forEach(op=>{
+    const opRows=pending.filter(r=>r.op===op);
+    const byStatus={};
+    opRows.forEach(r=>{if(!byStatus[r.status])byStatus[r.status]=[];byStatus[r.status].push(r);});
+    const blockId='pending-'+op.replace(/\s+/g,'_');
+    html+=`<div class="pending-op-block">
+      <div class="pending-op-header" onclick="togglePending('${blockId}')">
+        <span class="pending-op-name">${op}</span>
+        <span class="pending-op-count">${opRows.length} pending &nbsp;▾</span>
+      </div>
+      <div class="pending-op-body" id="${blockId}">`;
+    PENDING_STATUSES.forEach(status=>{
+      const statusRows=byStatus[status];
+      if(!statusRows||statusRows.length===0)return;
+      const color=SC[status]||'#888';
+      html+=`<div class="pending-group-title" style="color:${color}">${status} (${statusRows.length})</div>`;
+      statusRows.forEach(r=>{
+        const att=r.attempts>=2?`<span class="order-attempts">${r.attempts} attempts</span>`:'';
+        html+=`<div class="pending-order-row">
+          <span class="status-dot" style="background:${color}"></span>
+          <span class="order-id">${r.orderId}</span>
+          <span class="order-city">${r.city}</span>
+          <span class="order-customer">${r.customerName||''}</span>
+          ${att}
+        </div>`;
+      });
+    });
+    html+=`</div></div>`;
+  });
+  document.getElementById('pendingSection').innerHTML=html;
+}
+
+function togglePending(id){const el=document.getElementById(id);if(el)el.classList.toggle('open');}
+
+/* ── Main render ── */
+function render(){
+  const rows=filterRows(ALL);
+  const s=computeStats(rows);
+
+  document.getElementById('metrics').innerHTML=`
+    <div class="metric"><div class="lbl">Total orders</div><div class="val">${s.total}</div></div>
+    <div class="metric"><div class="lbl">Delivered</div><div class="val" style="color:#1D9E75">${s.delivered}</div><div class="sub">${s.deliveryRate}% rate</div></div>
+    <div class="metric"><div class="lbl">Enroute</div><div class="val" style="color:#FF6D00">${s.enroute}</div><div class="sub">in transit</div></div>
+    <div class="metric"><div class="lbl">Cancelled</div><div class="val" style="color:#E24B4A">${s.cancelled}</div><div class="sub">${s.total?Math.round(s.cancelled/s.total*100):0}%</div></div>
+    <div class="metric"><div class="lbl">Rescheduled</div><div class="val" style="color:#378ADD">${s.rescheduled}</div><div class="sub">${s.total?Math.round(s.rescheduled/s.total*100):0}%</div></div>
+    <div class="metric"><div class="lbl">Unresponsive</div><div class="val" style="color:#D4537E">${s.unresponsive}</div><div class="sub">${s.total?Math.round(s.unresponsive/s.total*100):0}%</div></div>
+    <div class="metric"><div class="lbl">Phone off</div><div class="val" style="color:#EF9F27">${s.phoneOff}</div><div class="sub">${s.total?Math.round(s.phoneOff/s.total*100):0}%</div></div>
+    <div class="metric"><div class="lbl">Buyout %</div><div class="val">${s.buyout}%</div><div class="sub">of closed orders</div></div>`;
+
+  const opMap={};rows.forEach(r=>{if(!opMap[r.op])opMap[r.op]={t:0,d:0};opMap[r.op].t++;if(r.status==='Delivered')opMap[r.op].d++;});
+  const opNames=Object.keys(opMap).sort((a,b)=>opMap[b].d/opMap[b].t-opMap[a].d/opMap[a].t);
+  mkChart('chartOp',{type:'bar',data:{labels:opNames,datasets:[{label:'Buyout rate %',data:opNames.map(n=>Math.round(opMap[n].d/opMap[n].t*100)),backgroundColor:'#1D9E75',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw}% (${opMap[opNames[ctx.dataIndex]].t} orders)`}}},scales:{y:{min:0,max:100,ticks:{callback:v=>v+'%'}}}}});
+
+  const stMap={};rows.forEach(r=>{stMap[r.status]=(stMap[r.status]||0)+1;});
+  const stL=Object.keys(stMap),stV=stL.map(k=>stMap[k]),stC=stL.map(k=>SC[k]||'#888');
+  document.getElementById('legStatus').innerHTML=stL.map((l,i)=>`<span><span class="ld" style="background:${stC[i]}"></span>${l} ${stV[i]}</span>`).join('');
+  mkChart('chartStatus',{type:'doughnut',data:{labels:stL,datasets:[{data:stV,backgroundColor:stC,borderWidth:1,borderColor:'#fff'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}});
+
+  const cityS=Object.entries(Object.fromEntries(rows.map(r=>[r.city,(rows.filter(x=>x.city===r.city).length)]))).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  mkChart('chartCity',{type:'bar',data:{labels:cityS.map(c=>c[0]),datasets:[{data:cityS.map(c=>c[1]),backgroundColor:'#378ADD',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{precision:0}}}}});
+
+  const prodS=Object.entries(rows.reduce((a,r)=>{a[r.product]=(a[r.product]||0)+1;return a;},{})).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  mkChart('chartProd',{type:'bar',data:{labels:prodS.map(p=>p[0]),datasets:[{data:prodS.map(p=>p[1]),backgroundColor:'#7F77DD',borderRadius:3}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{precision:0}}}}});
+
+  const {from,to}=getRange();const days=[];const d=new Date(from);d.setHours(0,0,0,0);
+  while(d<=to){days.push(new Date(d));d.setDate(d.getDate()+1);}
+  const dL=days.map(d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}));
+  const dV=days.map(day=>{const nx=new Date(day);nx.setDate(day.getDate()+1);return rows.filter(r=>r.date>=day&&r.date<nx).length;});
+  mkChart('chartLine',{type:'line',data:{labels:dL,datasets:[{data:dV,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',fill:true,tension:0.3,pointRadius:days.length>14?0:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{autoSkip:true,maxTicksLimit:12,maxRotation:30}},y:{min:0,ticks:{precision:0}}}}});
+
+  renderLatestOrders(rows);
+  renderOpTable(rows);
+  renderPending(rows);
+}
+</script>
+</body>
+</html>
